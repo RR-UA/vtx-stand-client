@@ -1,10 +1,5 @@
 import { SerialDevice } from './serial.svelte';
 
-export enum VTXProtocol {
-	SMART_AUDIO = 'SMART_AUDIO',
-	TRAMP = 'TRAMP'
-}
-
 export interface VTXSettings {
 	freq: number;
 	power: [number, number];

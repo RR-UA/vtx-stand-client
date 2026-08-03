@@ -3,7 +3,8 @@
 
 	import { Button, Input, Plot, Switch, Table } from '$/lib';
 
-	import { TestRunner, VTXProtocol } from '$/services';
+	import { Tramp, SmartAudio } from '$/services/protocols';
+	import { TestRunner, VTXSerial } from '$/services';
 	import { Select } from '$/lib/select';
 
 	let theme = $state(localStorage.getItem('theme') === 'dark');
@@ -42,9 +43,9 @@
 		<div class="grid grid-cols-2 gap-2 p-3">
 			<Select
 				label="Protocol"
-				options={VTXProtocol}
-				value={runner.protocol}
-				onchange={(e) => runner.setProtocol(e.currentTarget.value as VTXProtocol)}
+				options={[Tramp, SmartAudio]}
+				value={vtx.name}
+				onchange={(e) => runner.setProtocol(e.currentTarget.value as VTXSerial)}
 			/>
 			<Input disabled label="Frequency (MHz)" value={vtx.settings.freq} />
 			<Input disabled label="Target Power" value={vtx.settings.power[0]} />

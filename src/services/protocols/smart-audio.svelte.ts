@@ -1,4 +1,4 @@
-import { VTXSerial, type VTXSettings } from './vtx.svelte';
+import { VTXSerial, type VTXSettings } from '../vtx.svelte';
 
 const SYNC = 0xaa;
 const HEADER = 0x55;
@@ -17,7 +17,7 @@ enum MODE {
 	UNLOCK = 0x08
 }
 
-export class SmartAudioSerial extends VTXSerial {
+export class SmartAudio extends VTXSerial {
 	public readonly BAUD_RATE = 4800;
 	public readonly VID = 0x303a;
 
@@ -30,13 +30,13 @@ export class SmartAudioSerial extends VTXSerial {
 
 	public static crc(data: number[]): number {
 		let crc = 0;
-		for (let i = 0; i < data.length; i++) crc = SmartAudioSerial.CRC8_TABLE[crc ^ data[i]];
+		for (let i = 0; i < data.length; i++) crc = SmartAudio.CRC8_TABLE[crc ^ data[i]];
 		return crc;
 	}
 
 	private static frame(cmd: CMD, payload: number[] = []): Uint8Array {
 		const body = [SYNC, HEADER, cmd, payload.length, ...payload];
-		return Uint8Array.from([0x00, ...body, SmartAudioSerial.crc(body)]);
+		return Uint8Array.from([0x00, ...body, SmartAudio.crc(body)]);
 	}
 
 	protected onData(chunk: Uint8Array): void {
@@ -53,7 +53,7 @@ export class SmartAudioSerial extends VTXSerial {
 
 			const frame = this.buffer.slice(0, length);
 			const body = frame.slice(2, length - 1);
-			if (frame[length - 1] !== SmartAudioSerial.crc(body)) {
+			if (frame[length - 1] !== SmartAudio.crc(body)) {
 				this.buffer.shift();
 				continue;
 			}
@@ -65,7 +65,7 @@ export class SmartAudioSerial extends VTXSerial {
 
 	public async getSettings(): Promise<VTXSettings> {
 		const [, , , , , power, mode, freqHi, freqLo] = await this.send(
-			SmartAudioSerial.frame(CMD.GET_SETTINGS)
+			SmartAudio.frame(CMD.GET_SETTINGS)
 		);
 
 		this.settings = {
@@ -78,24 +78,24 @@ export class SmartAudioSerial extends VTXSerial {
 	}
 
 	public async setFreq(freq: number): Promise<VTXSettings> {
-		await this.send(SmartAudioSerial.frame(CMD.SET_FREQUENCY, [(freq >> 8) & 0xff, freq & 0xff]));
+		await this.send(SmartAudio.frame(CMD.SET_FREQUENCY, [(freq >> 8) & 0xff, freq & 0xff]));
 		return this.getSettings();
 	}
 
 	public async setPower(power: number): Promise<VTXSettings> {
-		await this.send(SmartAudioSerial.frame(CMD.SET_POWER, [power & 0xff]));
+		await this.send(SmartAudio.frame(CMD.SET_POWER, [power & 0xff]));
 		return this.getSettings();
 	}
 
 	public async setPIT(mode: boolean): Promise<VTXSettings> {
 		const bit = mode ? MODE.PIT : MODE.UNLOCK;
-		await this.send(SmartAudioSerial.frame(CMD.SET_MODE, [bit]));
+		await this.send(SmartAudio.frame(CMD.SET_MODE, [bit]));
 		return this.getSettings();
 	}
 
 	public async connect(): Promise<void> {
 		await super.connect();
 		await this.write(Uint8Array.from([0x7f, 0x01]));
-		await this.getSettings();
+		await this.setPIT(true);
 	}
 }

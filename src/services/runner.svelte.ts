@@ -1,6 +1,5 @@
-import { VTXSerial, VTXProtocol } from './vtx.svelte';
-import { SmartAudioSerial } from './smart-audio.svelte';
-import { TrampSerial } from './tramp.svelte';
+import { SmartAudio } from './protocols';
+import { VTXSerial } from './vtx.svelte';
 
 import { TinySASerial } from './tiny-sa.svelte';
 
@@ -32,8 +31,7 @@ export const toCsv = (points: Point[]): string => {
 export class TestRunner {
 	public readonly analyzer = new TinySASerial();
 
-	public vtx = $state<VTXSerial>(new SmartAudioSerial());
-	public protocol = $state<VTXProtocol>(VTXProtocol.SMART_AUDIO);
+	public vtx = $state<VTXSerial>(new SmartAudio());
 
 	public points = $state<Point[]>([]);
 	public running = $state(false);
@@ -70,16 +68,11 @@ export class TestRunner {
 		});
 	}
 
-	public async setProtocol(protocol: VTXProtocol): Promise<void> {
-		if (protocol === this.protocol) return;
-
-		const wasConnected = this.vtx.connected;
-		if (wasConnected) await this.vtx.close();
-
-		this.protocol = protocol;
-		this.vtx = protocol === VTXProtocol.TRAMP ? new TrampSerial() : new SmartAudioSerial();
-
-		if (wasConnected) await this.vtx.connect();
+	public async setProtocol(protocol: VTXSerial): Promise<void> {
+		console.log(protocol);
+		await this.vtx.close();
+		this.vtx = protocol;
+		await this.vtx.connect();
 	}
 
 	public async start(): Promise<void> {
