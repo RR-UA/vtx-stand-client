@@ -4,8 +4,9 @@ export abstract class SerialDevice {
 
 	public connected = $state(false);
 
-	private port?: SerialPort;
 	private writer?: WritableStreamDefaultWriter<Uint8Array>;
+	private reader?: ReadableStreamDefaultReader<Uint8Array>;
+	private port?: SerialPort;
 
 	public async connect(): Promise<void> {
 		const ports = await navigator.serial.getPorts();
@@ -30,20 +31,34 @@ export abstract class SerialDevice {
 	protected onClose(): void {}
 
 	private async readLoop(): Promise<void> {
-		const reader = this.port!.readable!.getReader();
+		this.reader = this.port!.readable!.getReader();
 		try {
 			while (this.connected) {
-				const { value, done } = await reader.read();
+				const { value, done } = await this.reader.read();
 				if (done) break;
 				this.onData(value);
 			}
 		} finally {
-			reader.releaseLock();
+			this.reader.releaseLock();
 		}
 	}
 
-	public close(): void {
-		this.onClose();
+	public async close(): Promise<void> {
+		if (!this.connected) return;
 		this.connected = false;
+		this.onClose();
+
+		if (this.reader) {
+			await this.reader.cancel();
+		}
+
+		if (this.writer) {
+			await this.writer.close();
+			this.writer.releaseLock();
+			this.writer = undefined;
+		}
+
+		await this.port?.close();
+		this.port = undefined;
 	}
 }

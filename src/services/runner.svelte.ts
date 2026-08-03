@@ -1,6 +1,5 @@
-import { VTXSerial, VTXProtocol } from './vtx.svelte';
-import { SmartAudioSerial } from './smart-audio.svelte';
-import { TrampSerial } from './tramp.svelte';
+import { VTXSerial } from './vtx.svelte';
+import { SmartAudio, Tramp } from './protocols';
 
 import { TinySASerial } from './tiny-sa.svelte';
 
@@ -30,11 +29,10 @@ export const toCsv = (points: Point[]): string => {
 };
 
 export class TestRunner {
+	public protocols = [SmartAudio, Tramp];
+
 	public readonly analyzer = new TinySASerial();
-
-	public vtx = $state<VTXSerial>(new SmartAudioSerial());
-	public protocol = $state<VTXProtocol>(VTXProtocol.SMART_AUDIO);
-
+	public vtx = $state<VTXSerial>(new SmartAudio());
 	public points = $state<Point[]>([]);
 	public running = $state(false);
 	public config = $state<SweepConfig>({
@@ -62,24 +60,24 @@ export class TestRunner {
 
 	constructor() {
 		void this.analyzer.connect();
-		void this.vtx.connect();
+		void this.vtx.connect().catch(() => {});
 
 		navigator.serial.addEventListener('connect', () => {
 			if (!this.analyzer.connected) void this.analyzer.connect();
 			if (!this.vtx.connected) void this.vtx.connect();
 		});
+
+		window.addEventListener('beforeunload', () => {
+			void this.analyzer.close();
+			void this.vtx.close();
+		});
 	}
 
-	public async setProtocol(protocol: VTXProtocol): Promise<void> {
-		if (protocol === this.protocol) return;
+	public async setProtocol(protocol: number): Promise<void> {
+		await this.vtx.close();
 
-		const wasConnected = this.vtx.connected;
-		if (wasConnected) await this.vtx.close();
-
-		this.protocol = protocol;
-		this.vtx = protocol === VTXProtocol.TRAMP ? new TrampSerial() : new SmartAudioSerial();
-
-		if (wasConnected) await this.vtx.connect();
+		this.vtx = new this.protocols[protocol]();
+		await this.vtx.connect();
 	}
 
 	public async start(): Promise<void> {

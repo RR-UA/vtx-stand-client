@@ -3,6 +3,8 @@ export type ClassArray = ClassValue[];
 export type ClassValue =
 	ClassArray | ClassDictionary | string | number | bigint | null | boolean | undefined;
 
+export type Constructor<T = unknown> = new (...args: unknown[]) => T;
+
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & { ref?: U | null };
 
 /**

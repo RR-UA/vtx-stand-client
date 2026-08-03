@@ -3,7 +3,7 @@
 
 	import { Button, Input, Plot, Switch, Table } from '$/lib';
 
-	import { TestRunner, VTXProtocol } from '$/services';
+	import { TestRunner } from '$/services';
 	import { Select } from '$/lib/select';
 
 	let theme = $state(localStorage.getItem('theme') === 'dark');
@@ -11,8 +11,6 @@
 	let asideOpen = $state(true);
 
 	const runner = new TestRunner();
-	const { analyzer } = runner;
-	const vtx = $derived(runner.vtx);
 
 	const changeTheme = () => {
 		theme = !theme;
@@ -33,37 +31,39 @@
 <aside class="flex w-75 flex-col gap-3 divide-y text-sm" class:hidden={!asideOpen}>
 	<div class="flex flex-wrap items-center justify-between gap-3 p-3 pt-0">
 		<span class="font-bold tracking-wider">VTX</span>
-		{#if vtx.connected}
+		{#if runner.vtx.connected}
 			<Radio class="size-10 animate-pulse p-2.5 text-green-500" />
 		{:else}
-			<RadioOff class="size-10 p-2.5 text-muted-foreground" onclick={() => vtx.connect()} />
+			<RadioOff class="size-10 p-2.5 text-muted-foreground" onclick={() => runner.vtx.connect()} />
 		{/if}
 
 		<div class="grid grid-cols-2 gap-2 p-3">
 			<Select
 				label="Protocol"
-				options={VTXProtocol}
-				value={runner.protocol}
-				onchange={(e) => runner.setProtocol(e.currentTarget.value as VTXProtocol)}
+				options={runner.protocols}
+				onchange={({ currentTarget }) => runner.setProtocol(+currentTarget.value)}
 			/>
-			<Input disabled label="Frequency (MHz)" value={vtx.settings.freq} />
-			<Input disabled label="Target Power" value={vtx.settings.power[0]} />
-			<Input disabled label="ActualPower" value={vtx.settings.power[1]} />
+			<Input disabled label="Frequency (MHz)" value={runner.vtx.settings.freq} />
+			<Input disabled label="Target Power" value={runner.vtx.settings.power[0]} />
+			<Input disabled label="ActualPower" value={runner.vtx.settings.power[1]} />
 			<div></div>
 			<Switch
 				label="PIT Mode"
-				value={vtx.settings.pit}
-				onChange={() => vtx.setPIT(!vtx.settings.pit)}
+				value={runner.vtx.settings.pit}
+				onChange={() => runner.vtx.setPIT(!runner.vtx.settings.pit)}
 			/>
 		</div>
 	</div>
 
 	<div class="flex flex-wrap items-center justify-between gap-3 p-3 pt-0">
 		<span class="font-bold tracking-wider">SA</span>
-		{#if analyzer.connected}
+		{#if runner.analyzer.connected}
 			<Radio class="size-10 animate-pulse p-2.5 text-green-500" />
 		{:else}
-			<RadioOff class="size-10 p-2.5 text-muted-foreground" onclick={() => analyzer.connect()} />
+			<RadioOff
+				class="size-10 p-2.5 text-muted-foreground"
+				onclick={() => runner.analyzer.connect()}
+			/>
 		{/if}
 
 		<div class="grid grid-cols-2 gap-2 p-3">
@@ -88,7 +88,7 @@
 
 		<Button
 			class="mx-3 w-full"
-			disabled={!vtx.connected || !analyzer.connected}
+			disabled={!runner.vtx.connected || !runner.analyzer.connected}
 			onclick={() => (runner.running ? runner.stop() : runner.start())}
 		>
 			{runner.running ? 'Stop' : 'Start'}

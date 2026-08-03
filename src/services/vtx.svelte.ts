@@ -1,10 +1,5 @@
 import { SerialDevice } from './serial.svelte';
 
-export enum VTXProtocol {
-	SMART_AUDIO = 'SMART_AUDIO',
-	TRAMP = 'TRAMP'
-}
-
 export interface VTXSettings {
 	freq: number;
 	power: [number, number];
@@ -51,7 +46,7 @@ export abstract class VTXSerial extends SerialDevice {
 	}
 
 	public async close(): Promise<void> {
-		await this.setPIT(true);
-		super.close();
+		await this.setPIT(true).catch(() => {});
+		await super.close();
 	}
 }

@@ -1,4 +1,4 @@
-import { VTXSerial, type VTXSettings } from './vtx.svelte';
+import { VTXSerial, type VTXSettings } from '../vtx.svelte';
 
 const SYNC = 0x0f;
 const FRAME_LENGTH = 16;
@@ -15,7 +15,7 @@ enum MODE {
 	UNLOCK = 0x01
 }
 
-export class TrampSerial extends VTXSerial {
+export class Tramp extends VTXSerial {
 	public readonly BAUD_RATE = 115200;
 	public readonly VID = 0x303a;
 
@@ -30,7 +30,7 @@ export class TrampSerial extends VTXSerial {
 	private static frame(cmd: CMD, payload: number[] = []): Uint8Array {
 		const frame = new Uint8Array(FRAME_LENGTH);
 		frame.set([SYNC, cmd, ...payload]);
-		frame[14] = TrampSerial.crc(frame);
+		frame[14] = Tramp.crc(frame);
 		return frame;
 	}
 
@@ -44,7 +44,7 @@ export class TrampSerial extends VTXSerial {
 			}
 
 			const frame = this.buffer.slice(0, FRAME_LENGTH);
-			if (frame[14] !== TrampSerial.crc(frame)) {
+			if (frame[14] !== Tramp.crc(frame)) {
 				this.buffer.shift();
 				continue;
 			}
@@ -55,7 +55,7 @@ export class TrampSerial extends VTXSerial {
 	}
 
 	public async getSettings(): Promise<VTXSettings> {
-		const frame = await this.send(TrampSerial.frame(CMD.GET_STATUS));
+		const frame = await this.send(Tramp.frame(CMD.GET_STATUS));
 
 		this.settings = {
 			freq: frame[2] | (frame[3] << 8),
@@ -67,17 +67,18 @@ export class TrampSerial extends VTXSerial {
 	}
 
 	public async setFreq(freq: number): Promise<VTXSettings> {
-		await this.write(TrampSerial.frame(CMD.SET_FREQ, [freq & 0xff, (freq >> 8) & 0xff]));
+		await this.write(Tramp.frame(CMD.SET_FREQ, [freq & 0xff, (freq >> 8) & 0xff]));
 		return this.getSettings();
 	}
 
 	public async setPower(power: number): Promise<VTXSettings> {
-		await this.write(TrampSerial.frame(CMD.SET_POWER, [power & 0xff, (power >> 8) & 0xff]));
+		await this.write(Tramp.frame(CMD.SET_POWER, [power & 0xff, (power >> 8) & 0xff]));
 		return this.getSettings();
 	}
 
 	public async setPIT(mode: boolean): Promise<VTXSettings> {
-		await this.write(TrampSerial.frame(CMD.SET_ACTIVE, [mode ? MODE.PIT : MODE.UNLOCK]));
+		if (this.settings.pit === mode) return this.settings;
+		await this.write(Tramp.frame(CMD.SET_ACTIVE, [mode ? MODE.PIT : MODE.UNLOCK]));
 		return this.getSettings();
 	}
 
@@ -85,5 +86,6 @@ export class TrampSerial extends VTXSerial {
 		await super.connect();
 		await this.write(Uint8Array.from([0x7f, 0x02]));
 		await this.getSettings();
+		await this.setPIT(true);
 	}
 }
