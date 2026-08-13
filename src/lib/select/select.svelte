@@ -10,7 +10,7 @@
 	let { value = $bindable(), class: className, options, label, ...rest }: SelectProps = $props();
 
 	const base =
-		'h-8 flex-1 w-full bg-secondary px-3 text-sm text-foreground cursor-pointer focus:outline-none';
+		'h-10 w-full bg-secondary px-3 text-sm text-foreground cursor-pointer focus:outline-none';
 </script>
 
 <label for={label} class="flex flex-col gap-1 text-xs text-muted-foreground capitalize">

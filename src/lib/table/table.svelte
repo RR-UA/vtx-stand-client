@@ -1,9 +1,10 @@
 <script lang="ts">
+	import type { Point } from '$/services/runner.svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+
 	import { cn } from '$/lib/utils.js';
 
-	import type { Point } from '$/services/runner.svelte';
-
-	export interface TableProps {
+	export interface TableProps extends HTMLAttributes<HTMLDivElement> {
 		class?: string;
 		data: Point[];
 	}
@@ -12,6 +13,8 @@
 	let sortKey = $state<keyof Point | null>(null);
 	let sortDesc = $state(false);
 	let order = $state<number[]>([]);
+
+	const base = 'flex-1 grid overflow-auto bg-inherit text-center';
 
 	const columns = $derived(data.length ? (Object.keys(data[0]) as (keyof Point)[]) : []);
 
@@ -27,7 +30,7 @@
 </script>
 
 <div
-	class={cn('grid overflow-auto bg-inherit text-center', className)}
+	class={cn(base, className)}
 	style="grid-template-columns: repeat({columns.length}, 1fr)"
 	{...rest}
 >

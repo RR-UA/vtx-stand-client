@@ -1,17 +1,23 @@
 <script lang="ts">
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { onMount, onDestroy } from 'svelte';
+
 	import * as echarts from 'echarts';
-	import { onMount } from 'svelte';
 
 	import type { Point } from '$/services/runner.svelte';
+	import { cn } from '$/lib/utils';
 
-	export interface PlotProps {
+	export interface PlotProps extends HTMLAttributes<HTMLDivElement> {
 		data: Point[];
 		theme?: boolean;
 	}
 
-	let { data, theme, ...rest }: PlotProps = $props();
+	let { class: className, data, theme, ...rest }: PlotProps = $props();
 	let container: HTMLDivElement;
 	let chart: echarts.ECharts;
+	let ro: ResizeObserver;
+
+	const base = 'flex-1';
 
 	onMount(() => {
 		chart = echarts.init(container, { renderer: 'canvas' });
@@ -26,17 +32,22 @@
 			yAxis: { type: 'value', name: 'dB' },
 			series: [
 				{ name: 'Peak', type: 'line', symbol: 'none' },
-				{ name: 'Floor', type: 'line', symbol: 'none' },
-				{ name: 'PLL', type: 'line', symbol: 'none' }
+				{ name: 'Peak Raw', type: 'line', symbol: 'none' },
+				{ name: 'Floor Raw', type: 'line', symbol: 'none' },
+				{ name: 'PLL', type: 'line', symbol: 'none' },
+				{ name: 'S21', type: 'line', symbol: 'none' }
 			]
 		});
 
-		const ro = new ResizeObserver(() => chart.resize());
+		ro = new ResizeObserver(([entry]) => {
+			const { width, height } = entry.contentRect;
+			chart.resize({ width, height });
+		});
 		ro.observe(container);
-		return () => {
-			ro.disconnect();
-			chart.dispose();
-		};
+	});
+
+	onDestroy(() => {
+		chart.dispose();
 	});
 
 	$effect(() => chart && chart.setTheme(theme ? 'dark' : 'default'));
@@ -44,12 +55,14 @@
 		if (!chart) return;
 		chart.setOption({
 			series: [
+				{ data: data.map((p) => [p.freq, p.peak - p.s21]) },
 				{ data: data.map((p) => [p.freq, p.peak]) },
 				{ data: data.map((p) => [p.freq, p.floor]) },
-				{ data: data.map((p) => [p.freq, p.pll]) }
+				{ data: data.map((p) => [p.freq, p.pll]) },
+				{ data: data.map((p) => [p.freq, p.s21]) }
 			]
 		});
 	});
 </script>
 
-<div bind:this={container} {...rest}></div>
+<div bind:this={container} class={cn(base, className)} {...rest}></div>

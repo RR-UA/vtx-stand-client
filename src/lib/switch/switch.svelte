@@ -16,7 +16,7 @@
 		...rest
 	}: SwitchProps = $props();
 
-	const base = 'inline-flex h-8 p-3 w-full cursor-pointer items-center transition-colors';
+	const base = 'inline-flex h-10 px-3 w-full cursor-pointer items-center transition-colors';
 
 	const toggle = () => {
 		value = !value;
