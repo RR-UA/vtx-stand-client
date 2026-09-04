@@ -1,51 +1,45 @@
-import { VTXSerial } from './vtx.svelte';
 import { SmartAudio, Tramp } from './protocols';
+import { VTXSerial } from './vtx.svelte';
 
 import { TinySASerial } from './tiny-sa.svelte';
 
-export interface Point {
-	freq: number;
-	peak: number;
-	floor: number;
-	pll: number;
+import type { S21Point } from './s2p';
+import * as s2p from './s2p';
+
+export class Point {
+	freq: number = 0;
+	peak: number = 0;
+	floor: number = 0;
+	pll: number = 0;
+	s21: number = 0;
 }
 
-export interface SweepConfig {
+export interface RunnerSettings {
 	startFreq: number;
 	stopFreq: number;
 	padding: number;
 	step: number;
-	samples: number;
-	span: number;
-	rbw: number;
-	gain: number;
-	repeat: number;
-	attenuate: number;
 }
 
 export const toCsv = (points: Point[]): string => {
-	const rows = points.map((p) => `${p.freq},${p.peak},${p.floor},${p.pll}`);
-	return ['freq,peak,floor,pll', ...rows].join('\n');
+	const rows = points.map((p) => Object.values(p).join());
+	return ['freq,peak,floor,pll,s21', ...rows].join('\n');
 };
 
 export class TestRunner {
+	private s2p: S21Point[] = [];
+
 	public protocols = [SmartAudio, Tramp];
 
 	public readonly analyzer = new TinySASerial();
 	public vtx = $state<VTXSerial>(new SmartAudio());
-	public points = $state<Point[]>([]);
+	public points = $state<Point[]>([new Point()]);
 	public running = $state(false);
-	public config = $state<SweepConfig>({
+	public settings = $state<RunnerSettings>({
 		startFreq: 5000,
 		stopFreq: 6000,
 		padding: 25,
-		step: 5,
-		samples: 10,
-		span: 100,
-		rbw: 300,
-		gain: -40.9,
-		repeat: 5,
-		attenuate: 20
+		step: 5
 	});
 
 	private download(): void {
@@ -73,6 +67,10 @@ export class TestRunner {
 		});
 	}
 
+	public async loadS2P(file: File): Promise<void> {
+		this.s2p = await file.text().then(s2p.parse);
+	}
+
 	public async setProtocol(protocol: number): Promise<void> {
 		await this.vtx.close();
 
@@ -83,15 +81,14 @@ export class TestRunner {
 	public async start(): Promise<void> {
 		if (!this.vtx.connected || !this.analyzer.connected || this.running) return;
 
-		const { startFreq, stopFreq, padding, step, samples, span, rbw, gain, repeat, attenuate } =
-			this.config;
+		const { startFreq, stopFreq, padding, step } = this.settings;
 
 		this.running = true;
 		this.points = [];
 
-		await this.analyzer.configure(span, rbw, gain, repeat, attenuate);
+		await this.analyzer.configure();
+		await this.vtx.setPower(this.vtx.settings.power);
 		await this.vtx.setFreq(startFreq + padding);
-		await this.vtx.setPower(2);
 		await this.vtx.setPIT(false);
 
 		try {
@@ -100,10 +97,10 @@ export class TestRunner {
 				const t0 = performance.now();
 
 				if (freq > startFreq && freq < stopFreq) await this.vtx.setFreq(freq);
-				const { peak, floor } = await this.analyzer.measure(freq, samples);
+				const { peak, floor } = await this.analyzer.measure(freq);
 				const pll = Math.round(performance.now() - t0);
-
-				this.points.push({ freq, peak, floor, pll });
+				const s21 = s2p.interpolate(this.s2p, freq);
+				this.points.push({ freq, peak, floor, pll, s21 });
 			}
 		} finally {
 			await this.stop();

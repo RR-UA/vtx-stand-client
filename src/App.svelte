@@ -43,14 +43,22 @@
 				options={runner.protocols}
 				onchange={({ currentTarget }) => runner.setProtocol(+currentTarget.value)}
 			/>
-			<Input disabled label="Frequency (MHz)" value={runner.vtx.settings.freq} />
-			<Input disabled label="Target Power" value={runner.vtx.settings.power[0]} />
-			<Input disabled label="ActualPower" value={runner.vtx.settings.power[1]} />
-			<div></div>
 			<Switch
 				label="PIT Mode"
 				value={runner.vtx.settings.pit}
 				onChange={() => runner.vtx.setPIT(!runner.vtx.settings.pit)}
+			/>
+			<Input
+				label="Frequency (MHz)"
+				type="number"
+				bind:value={runner.vtx.settings.freq}
+				onchange={() => runner.vtx.setFreq(runner.vtx.settings.freq)}
+			/>
+			<Input
+				label="Power"
+				type="number"
+				bind:value={runner.vtx.settings.power}
+				onchange={() => runner.vtx.setPower(runner.vtx.settings.power)}
 			/>
 		</div>
 	</div>
@@ -67,12 +75,12 @@
 		{/if}
 
 		<div class="grid grid-cols-2 gap-2 p-3">
-			<Input label="Samples" type="number" bind:value={runner.config.samples} />
-			<Input label="Repeat" type="number" bind:value={runner.config.repeat} />
-			<Input label="Span (kHz)" type="number" bind:value={runner.config.span} />
-			<Input label="RBW (kHz)" type="number" bind:value={runner.config.rbw} />
-			<Input label="Gain (dB)" type="number" bind:value={runner.config.gain} />
-			<Input label="Attenuate (dB)" type="number" bind:value={runner.config.attenuate} />
+			<Input label="Samples" type="number" bind:value={runner.analyzer.settings.samples} />
+			<Input label="Repeat" type="number" bind:value={runner.analyzer.settings.repeat} />
+			<Input label="Span (kHz)" type="number" bind:value={runner.analyzer.settings.span} />
+			<Input label="RBW (kHz)" type="number" bind:value={runner.analyzer.settings.rbw} />
+			<!--			<Input label="Gain (dB)" type="number" bind:value={runner.analyzer.settings.gain} />-->
+			<Input label="Attenuate (dB)" type="number" bind:value={runner.analyzer.settings.attenuate} />
 		</div>
 	</div>
 
@@ -80,10 +88,17 @@
 		<span class="font-bold tracking-wider">Process</span>
 
 		<div class="grid grid-cols-2 gap-2 p-3">
-			<Input label="Start (MHz)" type="number" bind:value={runner.config.startFreq} />
-			<Input label="Stop (MHz)" type="number" bind:value={runner.config.stopFreq} />
-			<Input label="Padding (MHz)" type="number" bind:value={runner.config.padding} />
-			<Input label="Step (MHz)" type="number" bind:value={runner.config.step} />
+			<Input label="Start (MHz)" type="number" bind:value={runner.settings.startFreq} />
+			<Input label="Stop (MHz)" type="number" bind:value={runner.settings.stopFreq} />
+			<Input label="Padding (MHz)" type="number" bind:value={runner.settings.padding} />
+			<Input label="Step (MHz)" type="number" bind:value={runner.settings.step} />
+
+			<Input
+				label="S21"
+				type="file"
+				accept=".s2p"
+				onchange={({ files }) => runner.loadS2P(files![0])}
+			/>
 		</div>
 
 		<Button
@@ -106,12 +121,12 @@
 	</Button>
 </aside>
 
-<main class="flex min-h-0 flex-col rounded-l bg-gray-200 dark:bg-black">
-	{#if tab === 'chart'}
-		<Plot class="flex-1" data={runner.points} {theme} />
-	{:else}
-		<Table class="flex-1" data={runner.points} />
-	{/if}
+<main
+	class="flex min-h-0 min-w-0 flex-col rounded-l bg-gray-200 dark:bg-black"
+	class:col-span-full={!asideOpen}
+>
+	<Plot hidden={tab !== 'chart'} data={runner.points} {theme} />
+	<Table hidden={tab !== 'table'} data={runner.points} />
 
 	<Button
 		variant="ghost"

@@ -59,8 +59,8 @@ export class Tramp extends VTXSerial {
 
 		this.settings = {
 			freq: frame[2] | (frame[3] << 8),
-			power: [frame[4] | (frame[5] << 8), frame[8] | (frame[9] << 8)],
-			pit: !!frame[7]
+			pit: !!frame[7],
+			power: frame[4] | (frame[5] << 8)
 		};
 
 		return this.settings;

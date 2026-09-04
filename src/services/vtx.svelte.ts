@@ -2,14 +2,14 @@ import { SerialDevice } from './serial.svelte';
 
 export interface VTXSettings {
 	freq: number;
-	power: [number, number];
+	power: number;
 	pit: boolean;
 }
 
 export abstract class VTXSerial extends SerialDevice {
 	private pending: ((frame: Uint8Array) => void) | null = null;
 
-	public settings = $state<VTXSettings>({ freq: 0, power: [0, 0], pit: false });
+	public settings = $state<VTXSettings>({ freq: 0, power: 0, pit: false });
 
 	public abstract getSettings(): Promise<VTXSettings>;
 	public abstract setFreq(freq: number): Promise<VTXSettings>;
@@ -33,6 +33,7 @@ export abstract class VTXSerial extends SerialDevice {
 						clearTimeout(timer);
 						resolve(frame);
 					};
+					console.log('RX', [...cmd].map((v) => v.toString(16)).join(' '));
 					this.write(cmd);
 				});
 			} catch {

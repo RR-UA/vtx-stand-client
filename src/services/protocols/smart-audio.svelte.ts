@@ -59,19 +59,19 @@ export class SmartAudio extends VTXSerial {
 			}
 
 			this.buffer.splice(0, length);
+			console.log('TX', frame.map((v) => v.toString(16)).join(' '));
 			this.resolvePending(Uint8Array.from(frame));
 		}
 	}
 
 	public async getSettings(): Promise<VTXSettings> {
-		const [, , , , , power, mode, freqHi, freqLo] = await this.send(
-			SmartAudio.frame(CMD.GET_SETTINGS)
-		);
+		const frame = await this.send(SmartAudio.frame(CMD.GET_SETTINGS));
+		const [, , , , , power, mode, freqHi, freqLo] = frame;
 
 		this.settings = {
 			freq: (freqHi << 8) | freqLo,
-			power: [power, power],
-			pit: !!(mode & PIT_MODE_BIT)
+			pit: !!(mode & PIT_MODE_BIT),
+			power
 		};
 
 		return this.settings;
